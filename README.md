@@ -286,13 +286,23 @@ and role still attached before you do.
 
 **5. Forget the local profile**
 
-```bash
-aws configure unset aws_access_key_id --profile sar-aws-faultline-scanner
-aws configure unset aws_secret_access_key --profile sar-aws-faultline-scanner
+`aws configure` has no `unset` subcommand (only `list` / `get` / `set` /
+`list-profiles` / ...) — remove the profile by editing the files directly.
+The section header differs slightly between the two:
+
+```ini
+# ~/.aws/credentials
+[sar-aws-faultline-scanner]
+...
+
+# ~/.aws/config
+[profile sar-aws-faultline-scanner]
+...
 ```
 
-Or remove the `[profile sar-aws-faultline-scanner]` block from
-`~/.aws/config` and `~/.aws/credentials` by hand.
+Delete both blocks by hand. `~` is `$HOME` on Linux and macOS; on Windows it's
+`%UserProfile%`, so the same two files are
+`%UserProfile%\.aws\credentials` and `%UserProfile%\.aws\config`.
 
 ## Compliance mapping, honestly
 

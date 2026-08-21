@@ -24,7 +24,7 @@ htmlcov/
 
 # sar-aws-faultline
 *.json
-!src/sar_aws_faultline/pricing/data/prices.seed.json
+!docs/iam-policy.json
 *.docx
 *.txt
 
