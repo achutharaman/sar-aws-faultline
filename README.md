@@ -176,6 +176,124 @@ Always current at [`docs/iam-policy.json`](docs/iam-policy.json), or run
 `sar-aws-faultline iam-policy`. AWS's managed `SecurityAudit` policy also
 covers everything here, if you would rather not manage a custom one.
 
+## Set up read-only access
+
+The policy above is generated, not created — you still need to turn it into
+something `--profile` can point at. This only needs whatever access your own
+AWS credentials already have; sar-aws-faultline itself never touches IAM.
+
+**1. Save the policy and create it**
+
+```bash
+sar-aws-faultline iam-policy > sar-aws-faultline-policy.json
+
+aws iam create-policy \
+  --policy-name sar-aws-faultline-read-only-scan \
+  --policy-document file://sar-aws-faultline-policy.json
+```
+
+**2. Attach it to a user or role**
+
+A dedicated IAM user with programmatic access is the simplest path for a
+laptop or a CI runner:
+
+```bash
+aws iam create-user --user-name sar-aws-faultline-scanner
+aws iam attach-user-policy \
+  --user-name sar-aws-faultline-scanner \
+  --policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/sar-aws-faultline-read-only-scan
+```
+
+Prefer a role instead if you're scanning from an EC2 instance, a CI job with
+OIDC, or assuming into other accounts — attach the same policy to the role and
+skip the rest of this section entirely.
+
+**3. Create the access key and wire it straight into a profile**
+
+Piping the key from `create-access-key` into `aws configure set` means the
+secret only ever lives in a shell variable, never a file on disk:
+
+```bash
+CREDS=$(aws iam create-access-key --user-name sar-aws-faultline-scanner --output json)
+aws configure set aws_access_key_id "$(jq -r .AccessKey.AccessKeyId <<<"$CREDS")" \
+  --profile sar-aws-faultline-scanner
+aws configure set aws_secret_access_key "$(jq -r .AccessKey.SecretAccessKey <<<"$CREDS")" \
+  --profile sar-aws-faultline-scanner
+aws configure set region us-east-1 --profile sar-aws-faultline-scanner
+unset CREDS
+```
+
+Requires `jq`. Without it, fall back to
+`aws configure --profile sar-aws-faultline-scanner` and paste the
+`AccessKeyId` / `SecretAccessKey` from the `create-access-key` output by hand.
+
+**4. Scan with it**
+
+```bash
+sar-aws-faultline scan --all-regions
+```
+
+`--profile` is actually optional here: if a profile named
+`sar-aws-faultline-scanner` exists in your AWS config, `sar-aws-faultline
+scan` uses it automatically when you don't pass `--profile` at all. This is a
+fallback, not a requirement — it only ever applies when that exact profile is
+present, so it changes nothing for default credentials, an instance role, or
+CI OIDC.
+
+If this was a one-off audit, clean up afterwards — see below. Read-only access
+has nothing to steal, but an unused access key is still a credential not worth
+leaving around.
+
+## Tear down
+
+Reverse order of creation. A user can't be deleted while it still holds an
+access key or an attached policy, so those have to go first. If you attached
+the policy to a role instead of a user, skip straight to step 4.
+
+**1. Delete the access key**
+
+```bash
+aws iam list-access-keys --user-name sar-aws-faultline-scanner
+aws iam delete-access-key \
+  --user-name sar-aws-faultline-scanner \
+  --access-key-id <ACCESS_KEY_ID>
+```
+
+**2. Detach the policy from the user**
+
+```bash
+aws iam detach-user-policy \
+  --user-name sar-aws-faultline-scanner \
+  --policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/sar-aws-faultline-read-only-scan
+```
+
+**3. Delete the user**
+
+```bash
+aws iam delete-user --user-name sar-aws-faultline-scanner
+```
+
+**4. Delete the policy**
+
+```bash
+aws iam delete-policy \
+  --policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/sar-aws-faultline-read-only-scan
+```
+
+Only once nothing else is attached to it — deleting a policy is permanent.
+`aws iam list-entities-for-policy --policy-arn <ARN>` shows every user, group
+and role still attached before you do.
+
+**5. Forget the local profile**
+
+```bash
+aws configure unset aws_access_key_id --profile sar-aws-faultline-scanner
+aws configure unset aws_secret_access_key --profile sar-aws-faultline-scanner
+```
+
+Or remove the `[profile sar-aws-faultline-scanner]` block from
+`~/.aws/config` and `~/.aws/credentials` by hand.
+
 ## Compliance mapping, honestly
 
 Each check maps to control references. **The mapping is deliberately modest
@@ -282,8 +400,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Part of a set of small, single-purpose AWS tools:
 
-- [`sar-aws-barnacle`](https://github.com/achutharaman/sar-aws-barnacle) —
-  finds cost waste and hygiene issues.
 - `sar-aws-baseline` — Terraform modules for a secure account baseline.
 
 Each stands alone; there is no dependency between them.

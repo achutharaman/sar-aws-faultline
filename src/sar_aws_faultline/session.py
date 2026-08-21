@@ -34,6 +34,13 @@ READ_ONLY_PREFIXES: tuple[str, ...] = (
 
 USER_AGENT_SUFFIX = "sar-aws-faultline"
 
+# The user/profile name the README's "Set up read-only access" walkthrough
+# tells readers to create. Used as a fallback only -- never forced -- so
+# running the CLI with no --profile at all "just works" for anyone who
+# followed that walkthrough verbatim, without changing behaviour for anyone
+# who didn't (default credentials, an instance role, CI OIDC, ...).
+DEFAULT_SCANNER_PROFILE = "sar-aws-faultline-scanner"
+
 
 class ReadOnlyViolationError(RuntimeError):
     """A check attempted a mutating AWS API call.
@@ -79,12 +86,25 @@ class ClientFactory:
     def _session(self) -> boto3.Session:
         session = getattr(self._local, "session", None)
         if session is None:
-            session = boto3.Session(profile_name=self.profile)
+            session = boto3.Session(profile_name=self.profile or self._default_profile())
             if self.read_only:
                 install_read_only_guard(session)
             self._local.session = session
             self._local.clients = {}
         return session
+
+    @staticmethod
+    def _default_profile() -> str | None:
+        """The scanner profile, but only if it's actually configured.
+
+        boto3.Session(profile_name=...) raises ProfileNotFound immediately if
+        the name doesn't exist, so this must confirm presence first -- passing
+        DEFAULT_SCANNER_PROFILE unconditionally would break every user who
+        didn't create it (default credentials, an instance role, CI OIDC).
+        """
+        if DEFAULT_SCANNER_PROFILE in boto3.Session().available_profiles:
+            return DEFAULT_SCANNER_PROFILE
+        return None
 
     def client(self, service: str, region: str | None = None):
         session = self._session()
