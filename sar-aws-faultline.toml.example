@@ -1,0 +1,21 @@
+# sar-aws-faultline configuration.
+# Precedence, highest wins: CLI flags > SAR_AWS_FAULTLINE_* env > this file.
+# Drop this in your repo root as sar-aws-faultline.toml.
+
+regions = ["ap-south-1", "us-east-1"]
+output = "table"
+
+# What makes `scan` exit 1. "blocker" is usually what a CI pipeline wants:
+# fail on anything an auditor would stop at, regardless of severity score.
+fail_on = "blocker"
+
+# Only run checks mapped to a given framework.
+# framework = "soc2-tsc"
+
+# checks = ["s3-bucket-public-access"]
+# skip = []
+
+# Per-check tunables. A new check adds a table here without touching config.py.
+[check.s3-bucket-public-access]
+# Buckets that are intentionally public, e.g. a static site origin.
+# ignore_buckets = ["my-public-assets"]

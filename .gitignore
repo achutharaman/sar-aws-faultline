@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# sar-aws-barnacle
+*.json
+!src/sar_aws_barnacle/pricing/data/prices.seed.json
+
+# NEVER commit these
+.env
+*.pem
+credentials
+.aws/
+
+# Scan output may contain account ids and resource names
+gaps.md
+faultline-report.*
+*.faultline.json
