@@ -1,0 +1,41 @@
+# Check-to-control mappings for S3 checks.
+#
+# Adding a framework means adding entries here plus a catalogue file under
+# data/frameworks/. No Python changes.
+
+[[mappings]]
+check = "s3-bucket-public-access"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "2.1.4"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for Block Public Access to be configured on S3
+  buckets. This check evaluates the effective public-access outcome of
+  account-level and bucket-level Block Public Access settings together with
+  bucket ACLs and bucket policy status.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.1"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.1.4"
+  rationale = """
+  A bucket readable by anonymous principals is an absence of logical access
+  control over a data store. Partial only: CC6.1 spans identity management,
+  authorisation and periodic access review across the whole system, of which
+  S3 public exposure is one narrow input.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.6"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.1.4"
+  rationale = """
+  Public bucket access is by definition access originating outside the system
+  boundary. Partial only: CC6.6 also covers network boundary protection, remote
+  access and threat detection, none of which this check evaluates.
+  """

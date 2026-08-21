@@ -1,0 +1,26 @@
+# CIS Amazon Web Services Foundations Benchmark
+#
+# Mapping a check to a CIS recommendation is OBJECTIVE: recommendations are
+# numbered, prescriptive and testable, so `interpretive = false`.
+#
+# Only recommendation identifiers and short paraphrased titles are stored here.
+# The benchmark text is licensed by CIS and is not reproduced.
+#
+# NOTE: v5.0.0 exists and is what AWS Security Hub tracks. We target v4.0.0
+# because its numbering is what these mappings were reviewed against. Advancing
+# the version means re-reviewing every mapping, not editing this line.
+id = "cis-aws"
+name = "CIS Amazon Web Services Foundations Benchmark"
+version = "4.0.0"
+authority = "Center for Internet Security"
+url = "https://www.cisecurity.org/benchmark/amazon_web_services"
+interpretive = false
+notice = """
+CIS Benchmarks are published by the Center for Internet Security under its own
+terms of use. This project references recommendation identifiers and paraphrased
+titles only, and is neither affiliated with nor endorsed by CIS.
+"""
+
+[[controls]]
+id = "2.1.4"
+title = "S3 buckets should be configured with Block Public Access"

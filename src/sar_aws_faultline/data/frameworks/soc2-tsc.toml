@@ -1,0 +1,29 @@
+# SOC 2 Trust Services Criteria (2017, with the 2022 revised points of focus)
+#
+# Mapping a technical check to a TSC criterion is INTERPRETIVE. The criteria are
+# principles-based; there is no authoritative AWS-configuration-to-TSC mapping,
+# and reasonable practitioners disagree. Hence `interpretive = true`, which
+# forces every mapping into this framework to declare `derived_from`.
+#
+# The AICPA's criteria text is copyrighted and is NOT reproduced. The titles
+# below are short paraphrases written for this project.
+id = "soc2-tsc"
+name = "SOC 2 Trust Services Criteria"
+version = "2017 (rev. 2022 points of focus)"
+authority = "AICPA"
+url = "https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2"
+interpretive = true
+notice = """
+Trust Services Criteria are published and copyrighted by the AICPA. This project
+references criterion identifiers and paraphrased summaries only, and is neither
+affiliated with nor endorsed by the AICPA. Mappings are one practitioner's
+interpretation and are not audit evidence on their own.
+"""
+
+[[controls]]
+id = "CC6.1"
+title = "Logical access controls restrict access to protected information assets"
+
+[[controls]]
+id = "CC6.6"
+title = "Controls restrict access originating from outside the system boundary"
