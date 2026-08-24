@@ -36,3 +36,7 @@ credentials
 gaps.md
 faultline-report.*
 *.faultline.json
+
+# Local project/tooling config, not for the public repo
+CLAUDE.md
+.claude/
