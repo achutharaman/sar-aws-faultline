@@ -25,6 +25,8 @@ htmlcov/
 # sar-aws-faultline
 *.json
 !docs/iam-policy.json
+*.txt
+*.docx
 
 # NEVER commit these
 .env
