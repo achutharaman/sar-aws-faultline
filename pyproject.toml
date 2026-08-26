@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: System :: Systems Administration",
     "Typing :: Typed",
 ]
-# Same three runtime dependencies as sar-aws-barnacle. The compliance mapping
+# Three runtime dependencies, kept deliberately small. The compliance mapping
 # data is TOML rather than YAML specifically so that stdlib tomllib covers it
 # and no fourth dependency is needed.
 dependencies = [

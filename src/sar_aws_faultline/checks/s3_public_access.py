@@ -132,6 +132,100 @@ def exposure_paths(state: BucketState) -> list[str]:
     return paths
 
 
+# -- collection (boto3 wiring) -----------------------------------------------
+#
+# Module-level rather than methods on PublicS3Buckets so a sibling check
+# (s3-block-public-access-disabled) can collect the same BucketState without
+# reaching into another check's private methods.
+
+
+def fetch_account_bpa(ctx: ScanContext) -> BlockPublicAccess:
+    if not ctx.account_id:
+        return BlockPublicAccess()
+    try:
+        client = ctx.client("s3control")
+        return BlockPublicAccess.from_api(client.get_public_access_block(AccountId=ctx.account_id))
+    except Exception:  # noqa: BLE001 - unset account BPA is the common case
+        return BlockPublicAccess()
+
+
+def fetch_bucket_bpa(s3, name: str) -> BlockPublicAccess:
+    try:
+        return BlockPublicAccess.from_api(s3.get_public_access_block(Bucket=name))
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in _MISSING_BPA_CODES:
+            return BlockPublicAccess()
+        raise
+    except Exception:  # noqa: BLE001
+        return BlockPublicAccess()
+
+
+def fetch_public_acl_grantees(s3, name: str) -> tuple[str, ...]:
+    try:
+        acl = s3.get_bucket_acl(Bucket=name)
+    except ClientError:
+        return ()
+    return tuple(
+        f"{uri} ({grant.get('Permission')})"
+        for grant in acl.get("Grants", [])
+        if (uri := grant.get("Grantee", {}).get("URI")) in PUBLIC_ACL_GRANTEES
+    )
+
+
+def fetch_policy_is_public(s3, name: str) -> bool:
+    try:
+        return bool(s3.get_bucket_policy_status(Bucket=name)["PolicyStatus"]["IsPublic"])
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") == "NoSuchBucketPolicy":
+            return False
+        return _policy_looks_public(s3, name)
+    except Exception:  # noqa: BLE001 - not every mock layer implements this
+        return _policy_looks_public(s3, name)
+
+
+def _policy_looks_public(s3, name: str) -> bool:
+    """Fallback when GetBucketPolicyStatus is unavailable.
+
+    Deliberately conservative: it only recognises the unambiguous wildcard
+    principal. AWS's own IsPublic evaluation also accounts for Condition keys
+    that narrow a wildcard, so this fallback can over-report where the real
+    API would not -- which is why it is a fallback and not the primary path.
+    """
+    try:
+        doc = json.loads(s3.get_bucket_policy(Bucket=name)["Policy"])
+    except Exception:  # noqa: BLE001
+        return False
+    for stmt in doc.get("Statement", []):
+        if stmt.get("Effect") != "Allow" or stmt.get("Condition"):
+            continue
+        principal = stmt.get("Principal")
+        if principal == "*" or (
+            isinstance(principal, dict) and principal.get("AWS") in ("*", ["*"])
+        ):
+            return True
+    return False
+
+
+def fetch_bucket_tags(s3, name: str) -> dict[str, str]:
+    try:
+        tagging = s3.get_bucket_tagging(Bucket=name)
+    except Exception:  # noqa: BLE001 - untagged buckets raise NoSuchTagSet
+        return {}
+    return {t["Key"]: t["Value"] for t in tagging.get("TagSet", []) if "Key" in t}
+
+
+def collect_bucket_state(s3, name: str, account_bpa: BlockPublicAccess) -> BucketState:
+    """Gather everything a verdict about this bucket depends on, in one call."""
+    return BucketState(
+        name=name,
+        account_bpa=account_bpa,
+        bucket_bpa=fetch_bucket_bpa(s3, name),
+        public_acl_grantees=fetch_public_acl_grantees(s3, name),
+        policy_is_public=fetch_policy_is_public(s3, name),
+        tags=fetch_bucket_tags(s3, name),
+    )
+
+
 @register
 class PublicS3Buckets:
     id = "s3-bucket-public-access"
@@ -197,18 +291,11 @@ class PublicS3Buckets:
 
     def run(self, ctx: ScanContext) -> Iterator[Finding]:
         s3 = ctx.client()
-        account_bpa = self._account_bpa(ctx)
+        account_bpa = fetch_account_bpa(ctx)
 
         for bucket in s3.list_buckets().get("Buckets", []):
             name = bucket["Name"]
-            state = BucketState(
-                name=name,
-                account_bpa=account_bpa,
-                bucket_bpa=self._bucket_bpa(s3, name),
-                public_acl_grantees=self._public_grantees(s3, name),
-                policy_is_public=self._policy_is_public(s3, name),
-                tags=self._tags(s3, name),
-            )
+            state = collect_bucket_state(s3, name, account_bpa)
             finding = self._evaluate(ctx, state)
             if finding is not None:
                 yield finding
@@ -245,83 +332,3 @@ class PublicS3Buckets:
             detail=detail,
             metadata=metadata,
         )
-
-    # -- collection helpers -------------------------------------------------
-
-    @staticmethod
-    def _account_bpa(ctx: ScanContext) -> BlockPublicAccess:
-        if not ctx.account_id:
-            return BlockPublicAccess()
-        try:
-            client = ctx.client("s3control")
-            return BlockPublicAccess.from_api(
-                client.get_public_access_block(AccountId=ctx.account_id)
-            )
-        except Exception:  # noqa: BLE001 - unset account BPA is the common case
-            return BlockPublicAccess()
-
-    @staticmethod
-    def _bucket_bpa(s3, name: str) -> BlockPublicAccess:
-        try:
-            return BlockPublicAccess.from_api(s3.get_public_access_block(Bucket=name))
-        except ClientError as exc:
-            if exc.response.get("Error", {}).get("Code") in _MISSING_BPA_CODES:
-                return BlockPublicAccess()
-            raise
-        except Exception:  # noqa: BLE001
-            return BlockPublicAccess()
-
-    @staticmethod
-    def _public_grantees(s3, name: str) -> tuple[str, ...]:
-        try:
-            acl = s3.get_bucket_acl(Bucket=name)
-        except ClientError:
-            return ()
-        return tuple(
-            f"{uri} ({grant.get('Permission')})"
-            for grant in acl.get("Grants", [])
-            if (uri := grant.get("Grantee", {}).get("URI")) in PUBLIC_ACL_GRANTEES
-        )
-
-    @staticmethod
-    def _policy_is_public(s3, name: str) -> bool:
-        try:
-            return bool(s3.get_bucket_policy_status(Bucket=name)["PolicyStatus"]["IsPublic"])
-        except ClientError as exc:
-            if exc.response.get("Error", {}).get("Code") == "NoSuchBucketPolicy":
-                return False
-            return PublicS3Buckets._policy_looks_public(s3, name)
-        except Exception:  # noqa: BLE001 - not every mock layer implements this
-            return PublicS3Buckets._policy_looks_public(s3, name)
-
-    @staticmethod
-    def _policy_looks_public(s3, name: str) -> bool:
-        """Fallback when GetBucketPolicyStatus is unavailable.
-
-        Deliberately conservative: it only recognises the unambiguous wildcard
-        principal. AWS's own IsPublic evaluation also accounts for Condition
-        keys that narrow a wildcard, so this fallback can over-report where the
-        real API would not -- which is why it is a fallback and not the
-        primary path.
-        """
-        try:
-            doc = json.loads(s3.get_bucket_policy(Bucket=name)["Policy"])
-        except Exception:  # noqa: BLE001
-            return False
-        for stmt in doc.get("Statement", []):
-            if stmt.get("Effect") != "Allow" or stmt.get("Condition"):
-                continue
-            principal = stmt.get("Principal")
-            if principal == "*" or (
-                isinstance(principal, dict) and principal.get("AWS") in ("*", ["*"])
-            ):
-                return True
-        return False
-
-    @staticmethod
-    def _tags(s3, name: str) -> dict[str, str]:
-        try:
-            tagging = s3.get_bucket_tagging(Bucket=name)
-        except Exception:  # noqa: BLE001 - untagged buckets raise NoSuchTagSet
-            return {}
-        return {t["Key"]: t["Value"] for t in tagging.get("TagSet", []) if "Key" in t}

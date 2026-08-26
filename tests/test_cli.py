@@ -25,7 +25,8 @@ def test_checks_table():
 def test_checks_json_includes_frameworks():
     r = runner.invoke(app, ["checks", "--output", "json"])
     assert r.exit_code == 0
-    entry = json.loads(r.stdout)[0]
+    entries = {e["id"]: e for e in json.loads(r.stdout)}
+    entry = entries["s3-bucket-public-access"]
     assert entry["frameworks"] == ["cis-aws", "soc2-tsc"]
     assert entry["audit_impact"] == "blocker"
 

@@ -4,8 +4,8 @@ Everything here is frozen. Findings are values, not mutable state: once a check
 emits one, nothing downstream may edit it. That is what lets the runner fan out
 across threads without any locking.
 
-Deliberately parallel to sar-aws-barnacle's models, with two additions specific
-to a security tool: ``Severity.CRITICAL`` and the ``AuditImpact`` axis.
+Two additions here are specific to a security tool: ``Severity.CRITICAL`` and
+the ``AuditImpact`` axis.
 """
 
 from __future__ import annotations
@@ -22,10 +22,10 @@ GLOBAL_REGION = "global"
 class Severity(StrEnum):
     """How bad this is if someone exploits it.
 
-    ``CRITICAL`` is present here and absent in sar-aws-barnacle. A cost tool
-    tops out at "you are wasting real money"; a security tool needs a level
-    that means "an unauthenticated stranger can read your data right now", and
-    collapsing that into HIGH loses the distinction that matters most.
+    ``CRITICAL`` is the top level here. A cost tool might top out at "you are
+    wasting real money"; a security tool needs a level that means "an
+    unauthenticated stranger can read your data right now", and collapsing
+    that into HIGH loses the distinction that matters most.
     """
 
     INFO = "info"

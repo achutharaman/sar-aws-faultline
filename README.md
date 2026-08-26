@@ -256,7 +256,8 @@ what is present in your installed version.
 
 Planned areas: encryption at rest, public exposure, IAM hygiene, logging and
 monitoring, key management, data protection. Scope is intentionally curated —
-see [`docs/DECISIONS.md`](docs/DECISIONS.md) for what was cut and why.
+see the TODO checklist and what was cut (and why) in
+[`docs/DECISIONS.md`](docs/DECISIONS.md#9-v1-scope).
 
 ## Limitations
 
@@ -282,8 +283,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Part of a set of small, single-purpose AWS tools:
 
-- [`sar-aws-barnacle`](https://github.com/achutharaman/sar-aws-barnacle) —
-  finds cost waste and hygiene issues.
 - `sar-aws-baseline` — Terraform modules for a secure account baseline.
 
 Each stands alone; there is no dependency between them.
