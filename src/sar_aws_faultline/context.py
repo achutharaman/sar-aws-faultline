@@ -1,10 +1,10 @@
 """The single argument every check receives.
 
-Two things here are deliberate, both inherited from sar-aws-barnacle. ``now`` is
-injected rather than read from the clock inside checks, so "is this access key
-older than 90 days?" is testable without freezing time globally. And ``client()``
-defaults to the check's own declared service, which keeps checks from reaching
-for clients they never declared IAM permissions for.
+Two things here are deliberate. ``now`` is injected rather than read from the
+clock inside checks, so "is this access key older than 90 days?" is testable
+without freezing time globally. And ``client()`` defaults to the check's own
+declared service, which keeps checks from reaching for clients they never
+declared IAM permissions for.
 """
 
 from __future__ import annotations

@@ -22,9 +22,9 @@ htmlcov/
 *.swp
 .DS_Store
 
-# sar-aws-barnacle
+# sar-aws-faultline
 *.json
-!src/sar_aws_barnacle/pricing/data/prices.seed.json
+!docs/iam-policy.json
 
 # NEVER commit these
 .env

@@ -13,7 +13,6 @@ import itertools
 import boto3
 import pytest
 from moto import mock_aws
-from tests.conftest import FROZEN_NOW, TEST_ACCOUNT
 
 from sar_aws_faultline.checks.s3_public_access import (
     ALL_USERS,
@@ -27,6 +26,7 @@ from sar_aws_faultline.config import Config
 from sar_aws_faultline.context import ScanContext
 from sar_aws_faultline.models import AuditImpact, Severity
 from sar_aws_faultline.session import ClientFactory
+from tests.conftest import FROZEN_NOW, TEST_ACCOUNT
 
 
 def test_private_bucket_yields_nothing(state_factory):

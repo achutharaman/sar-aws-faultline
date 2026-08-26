@@ -5,9 +5,9 @@ method. Registration is a decorator, discovery is automatic, and third parties
 can ship checks from their own distributions via the ``sar_aws_faultline.checks``
 entry-point group without this repo knowing they exist.
 
-Same contract as sar-aws-barnacle, extended with the four attributes a security
-finding needs that a cost finding does not: ``severity``, ``audit_impact``,
-``rationale`` and ``remediation``.
+Every check carries four attributes a security finding needs that a bare
+detection result does not: ``severity``, ``audit_impact``, ``rationale`` and
+``remediation``.
 """
 
 from __future__ import annotations

@@ -88,13 +88,13 @@ What decoupling means in practice:
 
 - No narrative link in the README beyond a "Related" section.
 - No dependency, shared package, or coordinated release between repos.
-- **No EBS check migration.** Barnacle keeps `ebs-unattached` permanently.
-  Faultline will implement its own encryption checks independently and wider
-  (volumes + snapshots + account-level default-encryption). Two independent
-  tools flagging the same resource for different reasons is not a defect: a
-  cost tool and a security tool care about an unencrypted volume for entirely
-  different reasons. This deletes a multi-release deprecation dance and removes
-  all risk to barnacle's launch.
+- **No EBS check migration.** The sibling cost tool keeps `ebs-unattached`
+  permanently. Faultline will implement its own encryption checks
+  independently and wider (volumes + snapshots + account-level
+  default-encryption). Two independent tools flagging the same resource for
+  different reasons is not a defect: a cost tool and a security tool care
+  about an unencrypted volume for entirely different reasons. This deletes a
+  multi-release deprecation dance and removes all risk to that tool's launch.
 - **No `sar-aws-common` package.** Two repos duplicating ~150 lines of session
   setup is cheaper than three repos coupled to a versioned internal dependency.
   Revisit at repo #4 or past ~300 lines of duplication.
@@ -103,10 +103,10 @@ What is shared is *conventions*, not code — see §5.
 
 ---
 
-## 5. Conventions inherited from sar-aws-barnacle
+## 5. Conventions inherited from a sibling project
 
-Adopted so the two repos read as one hand. Reconciled against barnacle's actual
-source on 2026-08-21.
+Adopted so the two repos read as one hand. Reconciled against that project's
+actual source on 2026-08-21.
 
 | Convention | Detail |
 |---|---|
@@ -129,12 +129,12 @@ source on 2026-08-21.
 
 | Divergence | Why |
 |---|---|
-| `Severity.CRITICAL` added | Barnacle tops out at HIGH. A security tool needs a level meaning "an unauthenticated stranger can read this right now". |
+| `Severity.CRITICAL` added | The sibling cost tool tops out at HIGH. A security tool needs a level meaning "an unauthenticated stranger can read this right now". |
 | `AuditImpact` axis added | The core product idea. No cost-tool analogue. |
-| `Remediation` on the check | Fix steps, effort and monthly cost are intrinsic to a security finding; barnacle's equivalent (price) is per-resource and computed. |
+| `Remediation` on the check | Fix steps, effort and monthly cost are intrinsic to a security finding; the cost tool's equivalent (price) is per-resource and computed. |
 | `rationale` ClassVar | Product copy rendered verbatim in the report. `register()` rejects stubs under 80 chars. |
-| `markdown` output format | Barnacle has table + json only. |
-| `compliance.py` + `data/` | No barnacle analogue. |
+| `markdown` output format | The sibling tool has table + json only. |
+| `compliance.py` + `data/` | No analogue in the sibling tool. |
 | `FailOn.BLOCKER` | A threshold a severity-only tool cannot express, and the one most CI pipelines want. |
 | No `pricing/` | Remediation cost is a static per-check figure, not a live API lookup. |
 
@@ -163,8 +163,8 @@ next to the finding.
 
 **Data, not code.** TOML under `data/frameworks/` and `data/mappings/`.
 Adding a framework adds a file and touches no Python. TOML rather than YAML so
-stdlib `tomllib` covers it — this keeps the runtime dependency set identical to
-barnacle's three.
+stdlib `tomllib` covers it — this keeps the runtime dependency set to three:
+boto3, typer, rich.
 
 **Two hops, different confidence.** check → CIS recommendation is *objective*
 (numbered, testable). CIS → SOC 2 TSC is *interpretive* (principles-based, no
@@ -216,8 +216,20 @@ Likewise `RestrictPublicBuckets` vs `BlockPublicPolicy`. Flag-counting produces
 false positives on genuinely private buckets, which is the exact failure mode
 this project exists to avoid.
 
-**Planned areas:** encryption at rest · public exposure · IAM hygiene ·
-logging and monitoring · key management · data protection.
+### Planned areas (TODO)
+
+- [ ] **Encryption at rest** — EBS volumes, snapshots, and account-level
+      default encryption, independently of the sibling cost tool's
+      `ebs-unattached` (see §4).
+- [ ] **Public exposure** — beyond `s3-bucket-public-access`.
+- [ ] **IAM hygiene** — narrowed scope; see "Broad IAM policy analysis"
+      above and the efficiency note below.
+- [ ] **Logging and monitoring**
+- [ ] **Key management**
+- [ ] **Data protection**
+
+Each needs its own severity/audit-impact pairing, remediation, IAM actions
+and compliance mapping — see "Adding a check" in `CONTRIBUTING.md`.
 
 ### Cut from v1, on domain grounds
 
@@ -258,8 +270,8 @@ from 3.11, and both are load-bearing here.
 ## 12. Open questions
 
 - Should the report state how many resources were *checked*, not just how many
-  failed? "2 of 47 buckets exposed" is more useful than "2 exposed", but
-  barnacle's model has no pass concept and adding one is a schema change.
+  failed? "2 of 47 buckets exposed" is more useful than "2 exposed", but the
+  sibling tool's model has no pass concept and adding one is a schema change.
 - ASFF or OCSF exporter as a fourth renderer — worth it only if someone
   actually wants Security Hub ingestion.
 - Whether `--all-regions` should cap concurrency separately from `max_workers`.

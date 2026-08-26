@@ -87,7 +87,14 @@ jobs:
         # A security tool that ships an insecure pattern is a bad advert.
         run: bandit -r src/ -ll
       - name: Known vulnerable dependencies
-        run: pip-audit --strict
+        # Auditing "." resolves straight from pyproject.toml's runtime
+        # dependencies rather than scanning the live environment, so the
+        # local editable install of sar-aws-faultline itself -- unpublished,
+        # unauditable by name -- is never part of the audit target. Scanning
+        # the environment instead would trip --strict on every run
+        # regardless of the actual dependencies, since --strict fails on any
+        # unauditable package, editable or not.
+        run: pip-audit --strict .
 
   build:
     name: Build distribution

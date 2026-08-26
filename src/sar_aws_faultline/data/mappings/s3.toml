@@ -39,3 +39,30 @@ check = "s3-bucket-public-access"
   boundary. Partial only: CC6.6 also covers network boundary protection, remote
   access and threat detection, none of which this check evaluates.
   """
+
+[[mappings]]
+check = "s3-block-public-access-disabled"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "2.1.4"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for Block Public Access to be configured on S3
+  buckets. This check flags buckets where that configuration is incomplete,
+  independently of whether the bucket happens to be publicly reachable right
+  now.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.1"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.1.4"
+  rationale = """
+  A bucket with no guardrail against a future public grant is a gap in
+  preventive logical access control, even before any access has actually
+  occurred. Partial only: CC6.1 spans identity management, authorisation and
+  periodic access review across the whole system, of which this preventive
+  S3 control is one narrow input.
+  """

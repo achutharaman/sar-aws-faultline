@@ -6,8 +6,8 @@ Design notes
 *Data, not code.* Mappings live in TOML under ``data/``. Adding a framework is
 adding a file. The data is reviewable by someone who reads controls but does
 not read Python, and diffs are legible in review. TOML rather than YAML because
-``tomllib`` is stdlib on 3.11+, which keeps the dependency set identical to
-sar-aws-barnacle's -- boto3, typer, rich, nothing else.
+``tomllib`` is stdlib on 3.11+, which keeps the runtime dependency set to just
+boto3, typer and rich -- nothing else.
 
 *Two hops, with different confidence.* Mapping a check to a CIS AWS Foundations
 recommendation is objective: the recommendation is numbered, prescriptive and
