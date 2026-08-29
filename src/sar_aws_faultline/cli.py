@@ -44,12 +44,35 @@ app = typer.Typer(
 )
 
 
+class _ConciseFormatter(logging.Formatter):
+    """Suppresses tracebacks unless verbose.
+
+    Third-party libraries log warnings with a full traceback attached --
+    botocore's own SSO/token-refresh warning is the common case a user hits
+    with no credentials configured. Without this, that one-line problem
+    prints dozens of stack-trace lines before anyone gets to the point.
+    ``--verbose`` still shows everything, unfiltered, for actually debugging
+    a check.
+    """
+
+    def __init__(self, *args: object, show_traceback: bool, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+        self._show_traceback = show_traceback
+
+    def format(self, record: logging.LogRecord) -> str:
+        if not self._show_traceback:
+            record.exc_info = None
+            record.exc_text = None
+            record.stack_info = None
+        return super().format(record)
+
+
 def _configure_logging(verbose: bool) -> None:
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.WARNING,
-        format="%(levelname)s %(name)s: %(message)s",
-        stream=sys.stderr,
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(
+        _ConciseFormatter("%(levelname)s %(name)s: %(message)s", show_traceback=verbose)
     )
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.WARNING, handlers=[handler])
 
 
 def _resolve_regions(config: Config, factory: ClientFactory) -> list[str]:

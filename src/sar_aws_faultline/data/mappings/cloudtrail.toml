@@ -1,0 +1,27 @@
+# Check-to-control mappings for CloudTrail checks.
+
+[[mappings]]
+check = "cloudtrail-not-enabled"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "3.1"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for CloudTrail to be enabled in all regions via
+  a multi-region trail. This check evaluates exactly that: whether at
+  least one trail is both multi-region and actively logging, not merely
+  whether a trail resource exists.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC7.2"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:3.1"
+  rationale = """
+  An account-wide activity trail is the raw evidence CC7.2's monitoring
+  activity depends on; without one there is nothing to monitor. Partial
+  only: CC7.2 also requires the monitoring itself -- alerting, review and
+  response -- which a trail existing does not establish on its own.
+  """

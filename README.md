@@ -105,6 +105,12 @@ Configuration can also live in `sar-aws-faultline.toml` — see
 [`sar-aws-faultline.toml.example`](sar-aws-faultline.toml.example). Precedence
 is CLI flags > `SAR_AWS_FAULTLINE_*` environment > config file > defaults.
 
+`--profile` is actually optional: if a profile named `sar-aws-faultline-scanner`
+exists in your AWS config, `sar-aws-faultline scan` uses it automatically when
+you don't pass `--profile` at all. This is a fallback, not a requirement — it
+only ever applies when that exact profile is present, so it changes nothing
+for default credentials, an instance role, or CI OIDC.
+
 ### As a CI gate
 
 ```yaml
@@ -247,16 +253,23 @@ morning, try this.
 
 ## Checks
 
-Currently one, with more landing incrementally. `sar-aws-faultline checks` lists
+Seven so far, with more landing incrementally. `sar-aws-faultline checks` lists
 what is present in your installed version.
 
 | Check | Severity | Audit impact | Effort | Cost/mo |
 |---|---|---|---|---|
 | `s3-bucket-public-access` | critical | blocker | minutes | $0 |
+| `s3-block-public-access-disabled` | medium | expected | minutes | $0 |
+| `rds-instance-unencrypted` | high | blocker | planned | $0 |
+| `iam-root-account-no-mfa` | critical | blocker | minutes | $0 |
+| `cloudtrail-not-enabled` | medium | blocker | minutes | $2 |
+| `ebs-volume-unencrypted` | medium | expected | hours | $0 |
+| `kms-key-rotation-disabled` | low | hardening | minutes | $0 |
 
-Planned areas: encryption at rest, public exposure, IAM hygiene, logging and
-monitoring, key management, data protection. Scope is intentionally curated —
-see the TODO checklist and what was cut (and why) in
+One check landed in each of the planned areas — public exposure, data
+protection, IAM hygiene, logging and monitoring, encryption at rest, and key
+management. Scope is intentionally curated — this is a first check per area,
+not exhaustive coverage of it. See what was cut and why in
 [`docs/DECISIONS.md`](docs/DECISIONS.md#9-v1-scope).
 
 ## Limitations

@@ -218,18 +218,39 @@ this project exists to avoid.
 
 ### Planned areas (TODO)
 
-- [ ] **Encryption at rest** — EBS volumes, snapshots, and account-level
-      default encryption, independently of the sibling cost tool's
-      `ebs-unattached` (see §4).
-- [ ] **Public exposure** — beyond `s3-bucket-public-access`.
-- [ ] **IAM hygiene** — narrowed scope; see "Broad IAM policy analysis"
-      above and the efficiency note below.
-- [ ] **Logging and monitoring**
-- [ ] **Key management**
-- [ ] **Data protection**
+One check has landed in each area. None of these are exhaustive coverage of
+their area -- one check per area was the bar, matching "curated, not
+complete." Widening any of these (snapshots and default-encryption for the
+EBS area, additional public-exposure resource types beyond S3, more of the
+credential-report-derived IAM findings the efficiency note below describes)
+is future work, not a gap in what shipped.
+
+- [x] **Encryption at rest** — `ebs-volume-unencrypted`. Snapshots and the
+      account-level default-encryption setting are still open; see §4 for
+      why this stays independent of the sibling cost tool's
+      `ebs-unattached`.
+- [x] **Public exposure** — `s3-bucket-public-access`,
+      `s3-block-public-access-disabled`.
+- [x] **IAM hygiene** — `iam-root-account-no-mfa`, pulled from the IAM
+      credential report per the efficiency note below. Key age, rotation and
+      password age from the same report are still open; see "Broad IAM
+      policy analysis" above for why broader policy analysis stays narrow.
+- [x] **Logging and monitoring** — `cloudtrail-not-enabled`.
+- [x] **Key management** — `kms-key-rotation-disabled`.
+- [x] **Data protection** — `rds-instance-unencrypted`, the check
+      CONTRIBUTING.md uses as its worked example, implemented for real here.
 
 Each needs its own severity/audit-impact pairing, remediation, IAM actions
 and compliance mapping — see "Adding a check" in `CONTRIBUTING.md`.
+
+Two of the new CIS AWS mappings (`1.5` root MFA, `2.3.1` RDS encryption) are
+a best inference, not a confirmed v4.0.0 citation -- see the comment above
+those controls in `data/frameworks/cis-aws.toml` for why, and revisit
+against the primary CIS document if it becomes available.
+
+`READ_ONLY_PREFIXES` (session.py) gained `"Generate"` for
+`iam:GenerateCredentialReport` -- a server-side report, not a mutation. See
+the comment there for the reasoning and the boundary it does not extend to.
 
 ### Cut from v1, on domain grounds
 

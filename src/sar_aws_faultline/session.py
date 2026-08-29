@@ -22,6 +22,15 @@ from botocore.config import Config as BotoConfig
 # Operation-name prefixes that cannot mutate state. Deliberately conservative:
 # a check needing something outside this set is a design conversation, not a
 # one-line addition.
+#
+# "Generate" was added for iam-root-account-no-mfa's use of
+# GenerateCredentialReport: it does not create, modify, or delete anything
+# a customer manages -- it asks IAM to compute a report server-side (the
+# analogous GenerateServiceLastAccessedDetails is the same shape), which is
+# closer to a query than a mutation. This does not widen the tool to
+# KMS's GenerateDataKey-style operations, which produce cryptographic
+# material rather than an inspectable report -- no check calls those, and
+# adding one would need this decision revisited.
 READ_ONLY_PREFIXES: tuple[str, ...] = (
     "Describe",
     "Get",
@@ -30,9 +39,39 @@ READ_ONLY_PREFIXES: tuple[str, ...] = (
     "Lookup",
     "Head",
     "Select",
+    "Generate",
 )
 
 USER_AGENT_SUFFIX = "sar-aws-faultline"
+
+# The user/profile name the README's "Set up read-only access" walkthrough
+# tells readers to create. Used as a fallback only -- never forced -- so
+# running the CLI with no --profile at all "just works" for anyone who
+# followed that walkthrough verbatim, without changing behaviour for anyone
+# who didn't (default credentials, an instance role, CI OIDC, ...).
+DEFAULT_SCANNER_PROFILE = "sar-aws-faultline-scanner"
+
+# botocore refreshes SSO tokens and assumed-role credentials by calling these
+# operations internally, through the very same session every check's client
+# is built from -- our before-call guard sees them too, and none of them
+# start with a read-only prefix. This is not a check trying to mutate
+# anything; it's the SDK obtaining credentials to make the *next* call with,
+# which is a precondition for scanning at all, not part of what's scanned.
+# Without this exemption, an expired SSO token or assumed-role session turns
+# into ReadOnlyViolationError -- the one error the runner deliberately never
+# swallows into a CheckError -- crashing the whole scan instead of degrading
+# the way every other credential problem already does.
+CREDENTIAL_REFRESH_OPERATIONS: frozenset[str] = frozenset(
+    {
+        "AssumeRole",
+        "AssumeRoleWithSAML",
+        "AssumeRoleWithWebIdentity",
+        "GetSessionToken",
+        "CreateToken",
+        "RegisterClient",
+        "StartDeviceAuthorization",
+    }
+)
 
 
 class ReadOnlyViolationError(RuntimeError):
@@ -45,7 +84,7 @@ class ReadOnlyViolationError(RuntimeError):
 
 def _guard_handler(model=None, **_kwargs) -> None:
     operation = getattr(model, "name", None)
-    if operation is None:
+    if operation is None or operation in CREDENTIAL_REFRESH_OPERATIONS:
         return
     if not operation.startswith(READ_ONLY_PREFIXES):
         raise ReadOnlyViolationError(
@@ -79,12 +118,25 @@ class ClientFactory:
     def _session(self) -> boto3.Session:
         session = getattr(self._local, "session", None)
         if session is None:
-            session = boto3.Session(profile_name=self.profile)
+            session = boto3.Session(profile_name=self.profile or self._default_profile())
             if self.read_only:
                 install_read_only_guard(session)
             self._local.session = session
             self._local.clients = {}
         return session
+
+    @staticmethod
+    def _default_profile() -> str | None:
+        """The scanner profile, but only if it's actually configured.
+
+        boto3.Session(profile_name=...) raises ProfileNotFound immediately if
+        the name doesn't exist, so this must confirm presence first -- passing
+        DEFAULT_SCANNER_PROFILE unconditionally would break every user who
+        didn't create it (default credentials, an instance role, CI OIDC).
+        """
+        if DEFAULT_SCANNER_PROFILE in boto3.Session().available_profiles:
+            return DEFAULT_SCANNER_PROFILE
+        return None
 
     def client(self, service: str, region: str | None = None):
         session = self._session()

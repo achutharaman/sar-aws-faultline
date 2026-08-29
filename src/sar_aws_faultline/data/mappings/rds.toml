@@ -1,0 +1,27 @@
+# Check-to-control mappings for RDS checks.
+
+[[mappings]]
+check = "rds-instance-unencrypted"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "2.3.1"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for RDS DB instance encryption at rest to be
+  enabled. This check evaluates the StorageEncrypted flag on every
+  instance directly, which cannot be changed after creation, so a finding
+  here means a rebuild is required rather than a setting toggle.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.7"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.3.1"
+  rationale = """
+  Database encryption at rest is a concrete mechanism CC6.7 names for
+  protecting stored information. Partial only: CC6.7 also covers
+  transmission in transit and physical media removal, neither of which
+  this check evaluates.
+  """

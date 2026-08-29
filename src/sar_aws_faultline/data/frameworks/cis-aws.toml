@@ -24,3 +24,34 @@ titles only, and is neither affiliated with nor endorsed by CIS.
 [[controls]]
 id = "2.1.4"
 title = "S3 buckets should be configured with Block Public Access"
+
+# 3.1 (CloudTrail multi-region trail) and 2.2.1 (EBS default encryption) and
+# 3.6 (KMS key rotation) are stable across both the v3.0.0 and v5.0.0
+# numbering that AWS Security Hub documents -- v4.0.0 sits between them and
+# is not separately published, so agreement on both sides is the strongest
+# evidence available short of the primary CIS document.
+[[controls]]
+id = "3.1"
+title = "CloudTrail should be enabled in all regions with a multi-region trail"
+
+[[controls]]
+id = "2.2.1"
+title = "EBS volume encryption should be enabled"
+
+[[controls]]
+id = "3.6"
+title = "KMS key rotation should be enabled for customer managed keys"
+
+# 1.5 (root account MFA) and 2.3.1 (RDS encryption) disagree between v3.0.0
+# and v5.0.0 (root MFA: 1.5 vs 1.4; RDS: 2.3.1 vs 2.2.1) -- the renumbering
+# landed somewhere in between and it isn't known which side of v4.0.0 it
+# fell on. These use the v1.4.0/v3.0.0-consistent numbers as the better
+# inference (two agreeing versions vs one), not a confirmed v4.0.0 citation.
+# Revisit against the primary CIS v4.0.0 document if that becomes available.
+[[controls]]
+id = "1.5"
+title = "MFA should be enabled for the root user account"
+
+[[controls]]
+id = "2.3.1"
+title = "RDS DB instances should have encryption at rest enabled"

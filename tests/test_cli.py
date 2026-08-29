@@ -52,7 +52,13 @@ def test_unknown_check_is_a_usage_error():
 
 def test_filters_matching_nothing_are_a_usage_error():
     """Silently scanning zero checks and exiting 0 would be the worst
-    possible outcome: a green CI job that checked nothing."""
-    r = runner.invoke(app, ["scan", "--impact", "hardening"])
+    possible outcome: a green CI job that checked nothing.
+
+    A specific check id combined with an impact it doesn't carry is
+    guaranteed empty regardless of what else is in the registry, unlike a
+    bare impact filter which stops being empty as soon as any check lands
+    at that level.
+    """
+    r = runner.invoke(app, ["scan", "--check", "s3-bucket-public-access", "--impact", "hardening"])
     assert r.exit_code == ExitCode.USAGE
     assert "no checks matched" in r.stderr

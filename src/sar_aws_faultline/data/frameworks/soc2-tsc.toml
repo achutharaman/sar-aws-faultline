@@ -27,3 +27,11 @@ title = "Logical access controls restrict access to protected information assets
 [[controls]]
 id = "CC6.6"
 title = "Controls restrict access originating from outside the system boundary"
+
+[[controls]]
+id = "CC6.7"
+title = "Transmission, movement and removal of information is restricted, including through encryption"
+
+[[controls]]
+id = "CC7.2"
+title = "The entity monitors system components for anomalies indicative of security events"

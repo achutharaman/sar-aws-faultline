@@ -81,6 +81,42 @@ def test_partial_scan_is_flagged(fmt):
     assert "artial" in out or '"partial": true' in out
 
 
+# -- table --------------------------------------------------------------
+
+
+def test_table_lists_every_check_run_not_just_findings():
+    """A clean check must not be indistinguishable from one nobody looked
+    at -- every id in checks_run gets a row, ok or not."""
+    res = ScanResult(
+        findings=(),
+        errors=(),
+        regions=("global",),
+        checks_run=(CHECK, "kms-key-rotation-disabled"),
+        started_at=NOW,
+        duration_seconds=1.0,
+        account_id="123456789012",
+    )
+    out = render(OutputFormat.TABLE, res)
+    assert CHECK in out
+    assert "kms-key-rotation-disabled" in out
+    assert "ok" in out
+
+
+def test_table_status_reflects_findings_and_errors():
+    res = ScanResult(
+        findings=(finding(),),
+        errors=(CheckError("kms-key-rotation-disabled", "us-east-1", "AccessDenied", "m"),),
+        regions=("global", "us-east-1"),
+        checks_run=(CHECK, "kms-key-rotation-disabled"),
+        started_at=NOW,
+        duration_seconds=1.0,
+        account_id="123456789012",
+    )
+    out = render(OutputFormat.TABLE, res)
+    assert "issue" in out
+    assert "error" in out
+
+
 # -- json -------------------------------------------------------------------
 
 

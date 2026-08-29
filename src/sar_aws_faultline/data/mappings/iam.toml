@@ -1,0 +1,27 @@
+# Check-to-control mappings for IAM checks.
+
+[[mappings]]
+check = "iam-root-account-no-mfa"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "1.5"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for MFA to be enabled on the root user account.
+  This check reads root's mfa_active status directly from the IAM
+  credential report, which is the same signal the recommendation's own
+  audit procedure checks.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.1"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:1.5"
+  rationale = """
+  Root has unconditional access to the whole account, so MFA on it is a
+  logical access control in the most literal sense CC6.1 describes. Partial
+  only: CC6.1 spans identity management, authorisation and periodic access
+  review across every principal, of which root MFA is one input.
+  """

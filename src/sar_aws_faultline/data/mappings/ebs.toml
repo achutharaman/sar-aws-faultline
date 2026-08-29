@@ -1,0 +1,26 @@
+# Check-to-control mappings for EC2/EBS checks.
+
+[[mappings]]
+check = "ebs-volume-unencrypted"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "2.2.1"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for EBS volume encryption to be enabled. This
+  check evaluates the actual per-volume encryption state rather than only
+  the account-level "encrypt by default" setting, so it also catches
+  volumes created before that setting was turned on.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.7"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.2.1"
+  rationale = """
+  Encryption at rest is one concrete mechanism CC6.7 names for protecting
+  information. Partial only: CC6.7 also covers transmission in transit and
+  physical removal of media, neither of which this check evaluates.
+  """

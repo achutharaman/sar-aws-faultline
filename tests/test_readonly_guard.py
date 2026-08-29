@@ -7,11 +7,33 @@ import pytest
 from moto import mock_aws
 
 from sar_aws_faultline.session import (
+    CREDENTIAL_REFRESH_OPERATIONS,
     READ_ONLY_PREFIXES,
     ClientFactory,
     ReadOnlyViolationError,
+    _guard_handler,
     install_read_only_guard,
 )
+
+
+class _FakeOperationModel:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
+def test_credential_refresh_operations_pass_the_guard():
+    """botocore calls these internally to refresh SSO tokens or assumed-role
+    credentials, through the same guarded session every check's client comes
+    from. None of them start with a read-only prefix, and blocking them
+    turns an expired token into an unhandled crash instead of the CheckError
+    every other credential problem already degrades into."""
+    for operation in CREDENTIAL_REFRESH_OPERATIONS:
+        _guard_handler(model=_FakeOperationModel(operation))  # must not raise
+
+
+def test_credential_refresh_exemption_does_not_widen_to_other_calls():
+    with pytest.raises(ReadOnlyViolationError):
+        _guard_handler(model=_FakeOperationModel("AssumeRolePolicy"))
 
 
 @mock_aws
@@ -53,6 +75,7 @@ def test_prefix_list_is_conservative():
         "Lookup",
         "Head",
         "Select",
+        "Generate",
     }
 
 
