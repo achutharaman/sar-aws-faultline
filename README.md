@@ -47,6 +47,9 @@ And every fix carries its price:
 | Finding | Severity | Audit impact | Effort | Cost of fixing |
 |---|---|---|---|---|
 | Publicly accessible S3 bucket | critical | blocker | minutes | $0 |
+| No active multi-region CloudTrail trail | medium | blocker | minutes | $2 |
+| GuardDuty is not enabled | medium | expected | minutes | $5 |
+| No active AWS Config recorder | medium | blocker | minutes | $3 |
 
 GuardDuty, a Config recorder and VPC flow logs all carry a real monthly bill.
 A three-person team deciding whether to turn them on needs that number in the
@@ -54,20 +57,66 @@ same table as the red X.
 
 ## Sample output
 
+Every check that ran gets a row — clean, not just the ones with a finding —
+so you can tell "checked, found nothing" apart from "never looked":
+
 ```
 sar-aws-faultline — account 123456789012
-┏━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
-┃   # ┃ Impact    ┃ Severity ┃ Region       ┃ Resource              ┃ Finding                       ┃ Fix     ┃
-┡━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
-│   1 │ blocker   │ critical │ global       │ acme-app-prod-assets  │ Publicly accessible S3 bucket │ minutes │
-│   2 │ blocker   │ critical │ global       │ acme-customer-exports │ Publicly accessible S3 bucket │ minutes │
-└─────┴───────────┴──────────┴──────────────┴───────────────────────┴───────────────────────────────┴─────────┘
 
-1 check(s) across 1 region(s) in 0.2s — 2 gap(s), 2 blocker(s).
+Checks run
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━┓
+┃ Check                            ┃ Status    ┃ Detail       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━┩
+│ aws-config-not-enabled           │ ok        │ clean        │
+│ cloudtrail-not-enabled           │ ok        │ clean        │
+│ ebs-snapshot-public              │ ok        │ clean        │
+│ ebs-volume-unencrypted           │ ok        │ clean        │
+│ guardduty-not-enabled            │ issue     │ 1 finding(s) │
+│ iam-access-key-stale             │ ok        │ clean        │
+│ iam-password-policy-weak         │ ok        │ clean        │
+│ iam-root-account-no-mfa          │ ok        │ clean        │
+│ iam-user-no-mfa                  │ ok        │ clean        │
+│ kms-key-rotation-disabled        │ issue     │ 1 finding(s) │
+│ rds-instance-multi-az-disabled   │ ok        │ clean        │
+│ rds-instance-publicly-accessible │ ok        │ clean        │
+│ rds-instance-unencrypted         │ ok        │ clean        │
+│ rds-snapshot-public              │ ok        │ clean        │
+│ s3-block-public-access-disabled  │ ok        │ clean        │
+│ s3-bucket-public-access          │ issue     │ 1 finding(s) │
+│ s3-bucket-tls-not-enforced       │ ok        │ clean        │
+│ security-group-open-admin-ports  │ issue     │ 1 finding(s) │
+│ vpc-flow-logs-disabled           │ ok        │ clean        │
+└──────────────────────────────────┴───────────┴──────────────┘
+
+Findings, in order
+┏━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃   # ┃ Impact    ┃ Severity ┃ Region       ┃ Resource              ┃ Finding                               ┃ Fix      ┃
+┡━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│   1 │ blocker   │ critical │ global       │ acme-customer-exports │ Publicly accessible S3 bucket         │ minutes  │
+│     │           │          │              │                       │ Readable by anonymous or any-AWS      │          │
+│     │           │          │              │                       │ principals via bucket policy          │          │
+│   2 │ blocker   │ critical │ us-east-1    │ sg-0a1b2c3d           │ Security group allows SSH or RDP from │ minutes  │
+│     │           │          │              │                       │ the internet                          │          │
+│     │           │          │              │                       │ Group 'legacy-bastion' allows SSH     │          │
+│     │           │          │              │                       │ (22) from 0.0.0.0/0                   │          │
+│   3 │ expected  │ medium   │ us-east-1    │ us-east-1             │ GuardDuty is not enabled              │ minutes  │
+│     │           │          │              │                       │ No GuardDuty detector exists in this  │          │
+│     │           │          │              │                       │ region                                │          │
+│   4 │ hardening │ low      │ us-east-1    │ mrk-f265774           │ KMS key without automatic rotation    │ minutes  │
+│     │           │          │              │                       │ Customer-managed key does not have    │          │
+│     │           │          │              │                       │ automatic annual rotation enabled     │          │
+└─────┴───────────┴──────────┴──────────────┴───────────────────────┴───────────────────────────────────────┴──────────┘
+
+19 check(s) across 1 region(s) in 41.6s — 4 gap(s), 2 blocker(s).
 Run with --output markdown for fix steps, effort and monthly cost.
 
 Checks AWS configuration only, which is one part of a SOC 2 audit. Not a compliance assessment.
 ```
+
+Notice the ordering: a `blocker` finding at `medium` severity (missing CloudTrail
+territory) would outrank a `hardening` finding at `critical` severity — audit
+impact sorts first. Here, `expected`/medium (GuardDuty) still outranks
+`hardening`/low (KMS rotation) for the same reason.
 
 `--output markdown` produces a report with, for each finding: why it matters in
 plain language, the affected resources, console steps, a CLI one-liner, what
@@ -163,14 +212,36 @@ does.
       "Sid": "SarAwsFaultlineReadOnlyScan",
       "Effect": "Allow",
       "Action": [
+        "cloudtrail:DescribeTrails",
+        "cloudtrail:GetTrailStatus",
+        "config:DescribeConfigurationRecorderStatus",
+        "config:DescribeConfigurationRecorders",
+        "ec2:DescribeFlowLogs",
         "ec2:DescribeRegions",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSnapshotAttribute",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeVpcs",
+        "guardduty:GetDetector",
+        "guardduty:ListDetectors",
+        "iam:GenerateCredentialReport",
+        "iam:GetAccountPasswordPolicy",
+        "iam:GetCredentialReport",
+        "kms:DescribeKey",
+        "kms:GetKeyRotationStatus",
+        "kms:ListKeys",
+        "rds:DescribeDBInstances",
+        "rds:DescribeDBSnapshotAttributes",
+        "rds:DescribeDBSnapshots",
         "s3:GetAccountPublicAccessBlock",
         "s3:GetBucketAcl",
         "s3:GetBucketPolicy",
         "s3:GetBucketPolicyStatus",
         "s3:GetBucketPublicAccessBlock",
         "s3:GetBucketTagging",
-        "s3:ListAllMyBuckets"
+        "s3:ListAllMyBuckets",
+        "sts:GetCallerIdentity"
       ],
       "Resource": "*"
     }
@@ -305,14 +376,6 @@ renderers handle it. Third-party distributions can ship checks via the
 `sar_aws_faultline.checks` entry-point group.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Related
-
-Part of a set of small, single-purpose AWS tools:
-
-- `sar-aws-baseline` — Terraform modules for a secure account baseline.
-
-Each stands alone; there is no dependency between them.
 
 ## License
 
