@@ -1,0 +1,29 @@
+# Check-to-control mappings for KMS checks.
+
+[[mappings]]
+check = "kms-key-rotation-disabled"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "3.6"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for key rotation to be enabled on customer
+  managed KMS keys. This check narrows to exactly the keys the
+  recommendation's own audit procedure covers -- enabled, customer
+  managed, rotation-eligible key specs -- and excludes AWS-managed and
+  asymmetric keys where rotation is not the account owner's to control.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.7"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:3.6"
+  rationale = """
+  Rotating key material limits how much data any single key version
+  protects, a defense-in-depth mechanism supporting CC6.7's protection of
+  information through encryption. Partial only: CC6.7 covers the broader
+  practice of encryption itself, of which key rotation hygiene is one
+  narrow, secondary input.
+  """

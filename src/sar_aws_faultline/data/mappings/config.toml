@@ -1,0 +1,28 @@
+# Check-to-control mappings for AWS Config checks.
+
+[[mappings]]
+check = "aws-config-not-enabled"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "3.3"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for AWS Config to be enabled with an active
+  recorder. This check evaluates exactly that: whether a recorder exists
+  in the region and whether it is actually recording, not merely
+  configured.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC7.2"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:3.3"
+  rationale = """
+  A configuration-change record is the raw evidence CC7.2's monitoring
+  activity depends on for anything that isn't an API call CloudTrail
+  already captures. Partial only: CC7.2 also requires the monitoring
+  itself -- alerting, review and response -- which recording configuration
+  history does not establish on its own.
+  """

@@ -42,6 +42,10 @@ class TableRenderer:
     def render(self, result: ScanResult, config: Config, stream: TextIO) -> None:
         console = Console(file=stream, width=120)
 
+        console.print(f"sar-aws-faultline — account {result.account_id or 'unknown'}\n")
+        console.print(self._status_table(result))
+        console.print()
+
         if result.findings:
             console.print(self._table(result))
         else:
@@ -49,9 +53,53 @@ class TableRenderer:
 
         self._summary(console, result)
 
+    def _status_table(self, result: ScanResult) -> Table:
+        """One row per check that ran, regardless of outcome.
+
+        The findings table below only lists rows for gaps, which leaves a
+        clean check indistinguishable from one nobody looked at. This is
+        what answers "did every check actually run, and how did it go" --
+        ok, issue, error, or partial (some regions errored, others didn't).
+        """
+        table = Table(title="Checks run", title_justify="left", header_style="bold")
+        table.add_column("Check")
+        table.add_column("Status", width=9)
+        table.add_column("Detail", overflow="fold")
+
+        findings_by_check = result.by_check()
+        errors_by_check: dict[str, list] = {}
+        for e in result.errors:
+            errors_by_check.setdefault(e.check_id, []).append(e)
+
+        for check_id in sorted(result.checks_run):
+            findings = findings_by_check.get(check_id, [])
+            errors = errors_by_check.get(check_id, [])
+
+            detail_parts = []
+            if findings:
+                detail_parts.append(f"{len(findings)} finding(s)")
+            if errors:
+                regions = ", ".join(e.region for e in errors)
+                detail_parts.append(f"could not check: {regions}")
+            detail = "; ".join(detail_parts) or "clean"
+
+            if errors and findings:
+                status, style = "partial", "yellow"
+            elif errors:
+                status, style = "error", "bold red"
+            elif findings:
+                worst = min(findings, key=lambda f: f.sort_key).audit_impact.value
+                status, style = "issue", IMPACT_STYLE.get(worst, "yellow")
+            else:
+                status, style = "ok", "green"
+
+            table.add_row(check_id, f"[{style}]{status}[/{style}]", detail)
+
+        return table
+
     def _table(self, result: ScanResult) -> Table:
         table = Table(
-            title=f"sar-aws-faultline — account {result.account_id or 'unknown'}",
+            title="Findings, in order",
             title_justify="left",
             header_style="bold",
         )

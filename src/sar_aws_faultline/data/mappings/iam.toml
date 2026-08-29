@@ -1,0 +1,116 @@
+# Check-to-control mappings for IAM checks.
+
+[[mappings]]
+check = "iam-root-account-no-mfa"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "1.5"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for MFA to be enabled on the root user account.
+  This check reads root's mfa_active status directly from the IAM
+  credential report, which is the same signal the recommendation's own
+  audit procedure checks.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.1"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:1.5"
+  rationale = """
+  Root has unconditional access to the whole account, so MFA on it is a
+  logical access control in the most literal sense CC6.1 describes. Partial
+  only: CC6.1 spans identity management, authorisation and periodic access
+  review across every principal, of which root MFA is one input.
+  """
+
+[[mappings]]
+check = "iam-user-no-mfa"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "1.10"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for MFA on every IAM user with a console
+  password. This check reads password_enabled and mfa_active directly from
+  the credential report for every non-root user, the same signal the
+  recommendation's own audit procedure checks.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.1"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:1.10"
+  rationale = """
+  A password-only sign-in with no second factor is a gap in the logical
+  access control CC6.1 describes. Partial only: CC6.1 spans identity
+  management, authorisation and periodic access review across every
+  principal, of which per-user MFA is one input.
+  """
+
+[[mappings]]
+check = "iam-access-key-stale"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "1.14"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for access keys to be rotated every 90 days or
+  less. This check reads each key's last-rotated timestamp from the
+  credential report and compares it against the same threshold.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.1"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:1.14"
+  rationale = """
+  Key rotation bounds how long a single leaked long-lived credential stays
+  valid, a form of the access-control hygiene CC6.1 describes. Partial
+  only: CC6.1 spans identity management, authorisation and periodic access
+  review across every principal, of which key rotation is one input.
+  """
+
+[[mappings]]
+check = "iam-password-policy-weak"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "1.8"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for a minimum password length of 14 characters
+  or more. This check reads MinimumPasswordLength from the account
+  password policy directly, treating no policy at all as the weakest
+  possible case rather than as not applicable.
+  """
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "1.9"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for the password policy to prevent reuse. This
+  check reads PasswordReusePrevention the same way, alongside minimum
+  length, since both come from the same GetAccountPasswordPolicy call.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.1"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:1.8"
+  rationale = """
+  A weak password policy lowers the floor every user's credential has to
+  clear, a logical access control CC6.1 describes. Partial only: CC6.1
+  spans identity management, authorisation and periodic access review
+  across every principal, of which the password policy is one input, and
+  MFA (covered by other checks) is a stronger control than password
+  strength alone.
+  """

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sar-aws-faultline"
-version = "0.1.0"
+version = "0.2.0"
 description = "Find the security gaps in your AWS account, ranked by what to fix first."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -38,7 +38,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    "moto[s3,sts,ec2]>=5.0",
+    "moto[s3,sts,ec2,rds,iam,cloudtrail,kms,config,guardduty]>=5.0",
     "ruff>=0.6",
 ]
 

@@ -3,8 +3,9 @@
 The living spec. Updated whenever scope or a design choice changes, so neither of
 us has to reconstruct "why is it like this?" from a long conversation.
 
-**Status:** v0.1 scaffolding complete — core engine and one check, 119 tests green.
-**Last updated:** 2026-08-21
+**Status:** 19 checks across eight areas (six planned, plus Confidentiality and
+Availability), 247 tests green.
+**Last updated:** 2026-08-29
 
 ---
 
@@ -79,14 +80,11 @@ would be bad form.
 
 ## 4. Relationship to the rest of the `sar-` set
 
-**Fully decoupled** (revised 2026-08-21). Originally scoped as the verification
-half of `sar-aws-baseline` — a drift detector for that Terraform baseline,
-expressed in compliance language. That was the one position no competitor could
-occupy, and giving it up is a real cost, recorded here deliberately.
+**Fully decoupled** (revised 2026-08-21).
 
 What decoupling means in practice:
 
-- No narrative link in the README beyond a "Related" section.
+- No narrative link in the README at all, not even a "Related" section.
 - No dependency, shared package, or coordinated release between repos.
 - **No EBS check migration.** The sibling cost tool keeps `ebs-unattached`
   permanently. Faultline will implement its own encryption checks
@@ -216,20 +214,70 @@ Likewise `RestrictPublicBuckets` vs `BlockPublicPolicy`. Flag-counting produces
 false positives on genuinely private buckets, which is the exact failure mode
 this project exists to avoid.
 
-### Planned areas (TODO)
+### Coverage by area
 
-- [ ] **Encryption at rest** — EBS volumes, snapshots, and account-level
-      default encryption, independently of the sibling cost tool's
-      `ebs-unattached` (see §4).
-- [ ] **Public exposure** — beyond `s3-bucket-public-access`.
-- [ ] **IAM hygiene** — narrowed scope; see "Broad IAM policy analysis"
-      above and the efficiency note below.
-- [ ] **Logging and monitoring**
-- [ ] **Key management**
-- [ ] **Data protection**
+19 checks shipped across the original six areas plus two new ones
+(Confidentiality, Availability) that fell out of the checks themselves
+rather than the original roadmap. None of this is exhaustive coverage of any
+area -- "curated, not complete" is still the bar. Widening further (more
+public-exposure resource types, more of the credential-report-derived IAM
+findings the efficiency note below describes, account-level default
+encryption) is future work, not a gap in what shipped.
 
-Each needs its own severity/audit-impact pairing, remediation, IAM actions
-and compliance mapping — see "Adding a check" in `CONTRIBUTING.md`.
+- **Encryption at rest** — `ebs-volume-unencrypted`. Snapshots (covered
+  instead under public exposure, since a public snapshot is an exposure
+  finding regardless of encryption) and the account-level
+  default-encryption setting are still open; see §4 for why this stays
+  independent of the sibling cost tool's `ebs-unattached`.
+- **Public exposure** — `s3-bucket-public-access`,
+  `s3-block-public-access-disabled`, `security-group-open-admin-ports`,
+  `rds-instance-publicly-accessible`, `ebs-snapshot-public`,
+  `rds-snapshot-public`. The area with the most coverage so far, since
+  "is this reachable from outside the account" turned out to
+  generalise cleanly across S3, EC2, and RDS.
+- **IAM hygiene** — `iam-root-account-no-mfa`, `iam-user-no-mfa`,
+  `iam-access-key-stale`, `iam-password-policy-weak`, all pulled from
+  one shared `iam_credential_report.py` helper per the efficiency note
+  below (one report fetch, four checks). Password age and root usage
+  from the same report are still open; see "Broad IAM policy analysis"
+  above for why broader policy analysis stays narrow.
+- **Logging and monitoring** — `cloudtrail-not-enabled`,
+  `aws-config-not-enabled`, `guardduty-not-enabled`,
+  `vpc-flow-logs-disabled`.
+- **Key management** — `kms-key-rotation-disabled`.
+- **Data protection** — `rds-instance-unencrypted`, the check
+  CONTRIBUTING.md uses as its worked example, implemented for real here.
+- **Confidentiality** (new TSC category, not in the original six areas)
+  — `s3-bucket-tls-not-enforced`. The in-transit complement to the
+  at-rest encryption checks above.
+- **Availability** (new TSC category, not in the original six areas) —
+  `rds-instance-multi-az-disabled`. Chosen over a backup-retention check
+  for this area because Multi-AZ has an actual CIS citation and backup
+  retention does not appear as a numbered recommendation in any CIS AWS
+  Foundations version reviewed -- see the mapping note below.
+
+New checks in any area still need their own severity/audit-impact pairing,
+remediation, IAM actions and compliance mapping — see "Adding a check" in
+`CONTRIBUTING.md`.
+
+**Compliance mapping honesty, in one place.** Several CIS AWS citations
+added across both batches are a best inference rather than a confirmed
+v4.0.0 citation -- `1.5` (root MFA), `2.3.1` (RDS encryption), `1.10`
+(console-user MFA), `1.14` (key rotation), `1.8`/`1.9` (password policy),
+`5.2` (admin-port security groups), `2.3.3` (RDS public access), and `2.2.4`
+(Multi-AZ, the weakest evidence of the set: only one AWS Security Hub data
+point rather than two agreeing versions). See the comments above each
+control in `data/frameworks/cis-aws.toml` for the version-by-version
+reasoning, and revisit against the primary CIS v4.0.0 document if it becomes
+available. Three checks (`ebs-snapshot-public`, `rds-snapshot-public`,
+`guardduty-not-enabled`) have no CIS AWS Foundations citation at all in any
+version reviewed and are mapped into SOC 2 only, `derived_from` a
+topically-related control on a different check rather than one of their own
+-- the mapping rationale text says so explicitly in each case.
+
+`READ_ONLY_PREFIXES` (session.py) gained `"Generate"` for
+`iam:GenerateCredentialReport` -- a server-side report, not a mutation. See
+the comment there for the reasoning and the boundary it does not extend to.
 
 ### Cut from v1, on domain grounds
 

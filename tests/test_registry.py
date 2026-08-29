@@ -121,7 +121,12 @@ def test_select_by_severity_floor():
 
 def test_select_by_impact():
     assert select_checks(impacts=[AuditImpact.BLOCKER])
-    assert select_checks(impacts=[AuditImpact.HARDENING]) == []
+    # Robust to future checks landing at any impact level: assert the filter
+    # actually filters, rather than hardcoding which levels are populated
+    # today.
+    selected = select_checks(impacts=[AuditImpact.HARDENING])
+    expected = [c for c in select_checks() if c.audit_impact is AuditImpact.HARDENING]
+    assert selected == expected
 
 
 def test_select_by_framework():

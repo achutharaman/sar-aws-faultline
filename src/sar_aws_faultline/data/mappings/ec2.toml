@@ -1,0 +1,72 @@
+# Check-to-control mappings for EC2 checks not already covered in ebs.toml.
+
+[[mappings]]
+check = "security-group-open-admin-ports"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "5.2"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for security groups to restrict unrestricted
+  access on administrative ports. This check evaluates every ingress rule
+  on every security group for a 0.0.0.0/0 or ::/0 source covering SSH or
+  RDP, the same exposure the recommendation's own audit procedure checks.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.6"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:5.2"
+  rationale = """
+  An admin port reachable from the whole internet is access originating
+  from outside the system boundary in exactly the sense CC6.6 describes.
+  Partial only: CC6.6 also covers remote access controls and threat
+  detection beyond network-layer exposure.
+  """
+
+[[mappings]]
+check = "ebs-snapshot-public"
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.6"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.1.4"
+  rationale = """
+  A snapshot shared with every AWS account is access originating from
+  outside the system boundary, the same exposure family CC6.6 covers for
+  S3. No CIS AWS Foundations recommendation numbers EBS snapshot sharing
+  specifically in any version reviewed, so this is reasoned by extension
+  from the S3 Block Public Access recommendation rather than a direct
+  citation -- both are public-exposure findings, just different resource
+  types. Partial only: CC6.6 also covers network boundary protection,
+  remote access and threat detection.
+  """
+
+[[mappings]]
+check = "vpc-flow-logs-disabled"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "3.7"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for VPC flow logging to be enabled in all VPCs.
+  This check compares every VPC in the region against active flow logs
+  covering it, the same coverage the recommendation's own audit procedure
+  checks.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC7.2"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:3.7"
+  rationale = """
+  Flow logs are network-layer evidence for the anomaly monitoring CC7.2
+  describes, complementing CloudTrail's API-layer evidence. Partial only:
+  CC7.2 also requires the monitoring itself -- alerting, review and
+  response -- which log collection does not establish on its own.
+  """

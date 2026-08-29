@@ -27,3 +27,21 @@ title = "Logical access controls restrict access to protected information assets
 [[controls]]
 id = "CC6.6"
 title = "Controls restrict access originating from outside the system boundary"
+
+[[controls]]
+id = "CC6.7"
+title = "Transmission, movement and removal of information is restricted, including through encryption"
+
+[[controls]]
+id = "CC7.2"
+title = "The entity monitors system components for anomalies indicative of security events"
+
+# A1.2 is the Availability category, not Security -- this project's first
+# mapping outside CC6.x/CC7.x. It still requires derived_from an objective
+# control like every interpretive mapping here; there is no Availability-
+# specific objective framework in this project yet, so it derives from the
+# closest real CIS citation available (see rds-instance-multi-az-disabled's
+# mapping).
+[[controls]]
+id = "A1.2"
+title = "Environmental protections, backup and recovery infrastructure are designed to meet availability objectives"
