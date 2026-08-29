@@ -55,3 +55,65 @@ title = "MFA should be enabled for the root user account"
 [[controls]]
 id = "2.3.1"
 title = "RDS DB instances should have encryption at rest enabled"
+
+# 1.10 (MFA for console users), 1.14 (access key rotation), 1.8 (password
+# minimum length) and 1.9 (password reuse prevention) are stable across
+# v1.4.0 and v3.0.0 -- the same "two agreeing versions bracket v4.0.0"
+# evidence used above, on the earlier side of the gap this time.
+[[controls]]
+id = "1.10"
+title = "MFA should be enabled for all IAM users with a console password"
+
+[[controls]]
+id = "1.14"
+title = "IAM user access keys should be rotated every 90 days or less"
+
+[[controls]]
+id = "1.8"
+title = "IAM password policy should require a minimum length of 14 or more"
+
+[[controls]]
+id = "1.9"
+title = "IAM password policy should prevent password reuse"
+
+# 3.3 (AWS Config enabled), 3.7 (VPC flow logging) and 2.1.1 (S3 SSL
+# required) are stable across v3.0.0 and v5.0.0, same high-confidence
+# pattern as 3.1/2.2.1/3.6 above.
+[[controls]]
+id = "3.3"
+title = "AWS Config should be enabled with an active recorder"
+
+[[controls]]
+id = "3.7"
+title = "VPC flow logging should be enabled in all VPCs"
+
+[[controls]]
+id = "2.1.1"
+title = "S3 buckets should require requests to use SSL"
+
+# 5.2 (security groups open to the internet on admin ports) and 2.3.3 (RDS
+# publicly accessible) exist only from v3.0.0 onward -- not supported at
+# v1.4.0 under this numbering -- and disagree between v3.0.0 (5.2 / 2.3.3)
+# and v5.0.0 (5.3 / 2.2.3). Same treatment as 1.5/2.3.1 above: the earlier,
+# closer-to-v4.0.0 anchor is used as the better inference, not a confirmed
+# citation.
+[[controls]]
+id = "5.2"
+title = "Security groups should not allow unrestricted access to admin ports"
+
+[[controls]]
+id = "2.3.3"
+title = "RDS DB instances should prohibit public access"
+
+# RDS.5 (Multi-AZ) is documented by AWS Security Hub only from v5.0.0 --
+# "not supported" at both v3.0.0 and v1.4.0 in that table, which is weaker
+# evidence than every other citation in this file (no bracketing agreement
+# at all, just one data point). Included anyway because it is still the
+# closest real citation available; backup-retention, the alternative this
+# check could have covered instead, has no CIS AWS Foundations citation in
+# any version and was dropped rather than force one. Revisit this control's
+# applicability to v4.0.0 specifically if the primary document becomes
+# available.
+[[controls]]
+id = "2.2.4"
+title = "RDS DB instances should be configured for multiple Availability Zones"

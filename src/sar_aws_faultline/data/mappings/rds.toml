@@ -25,3 +25,72 @@ check = "rds-instance-unencrypted"
   transmission in transit and physical media removal, neither of which
   this check evaluates.
   """
+
+[[mappings]]
+check = "rds-instance-publicly-accessible"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "2.3.3"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for RDS instances to prohibit public access.
+  This check reads the PubliclyAccessible flag directly, the same
+  configuration the recommendation's own audit procedure checks.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.6"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.3.3"
+  rationale = """
+  A publicly reachable database is access originating from outside the
+  system boundary in the most literal sense CC6.6 describes. Partial only:
+  CC6.6 also covers network boundary protection, remote access and threat
+  detection beyond this one resource type.
+  """
+
+[[mappings]]
+check = "rds-snapshot-public"
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC6.6"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.1.4"
+  rationale = """
+  A snapshot shared with every AWS account is access originating from
+  outside the system boundary, the same exposure family CC6.6 covers for
+  S3. No CIS AWS Foundations recommendation numbers RDS snapshot sharing
+  specifically in any version reviewed, so this is reasoned by extension
+  from the S3 Block Public Access recommendation rather than a direct
+  citation -- both are public-exposure findings, just different resource
+  types. Partial only: CC6.6 also covers network boundary protection,
+  remote access and threat detection.
+  """
+
+[[mappings]]
+check = "rds-instance-multi-az-disabled"
+
+  [[mappings.controls]]
+  framework = "cis-aws"
+  control = "2.2.4"
+  relationship = "supports"
+  rationale = """
+  The recommendation calls for RDS instances to be configured across
+  multiple Availability Zones. This check reads the MultiAZ flag directly,
+  the same configuration the recommendation's own audit procedure checks.
+  """
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "A1.2"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:2.2.4"
+  rationale = """
+  Multi-AZ is a concrete availability infrastructure mechanism A1.2 names
+  as a category. Partial only: A1.2 spans environmental protections,
+  backup processes and capacity planning across the whole system, of which
+  database failover is one narrow input.
+  """

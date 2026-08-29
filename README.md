@@ -253,23 +253,37 @@ morning, try this.
 
 ## Checks
 
-Seven so far, with more landing incrementally. `sar-aws-faultline checks` lists
-what is present in your installed version.
+Nineteen so far, with more landing incrementally. `sar-aws-faultline checks`
+lists what is present in your installed version.
 
 | Check | Severity | Audit impact | Effort | Cost/mo |
 |---|---|---|---|---|
 | `s3-bucket-public-access` | critical | blocker | minutes | $0 |
 | `s3-block-public-access-disabled` | medium | expected | minutes | $0 |
+| `s3-bucket-tls-not-enforced` | medium | expected | minutes | $0 |
 | `rds-instance-unencrypted` | high | blocker | planned | $0 |
-| `iam-root-account-no-mfa` | critical | blocker | minutes | $0 |
-| `cloudtrail-not-enabled` | medium | blocker | minutes | $2 |
+| `rds-instance-publicly-accessible` | high | blocker | minutes | $0 |
+| `rds-snapshot-public` | critical | blocker | minutes | $0 |
+| `rds-instance-multi-az-disabled` | low | hardening | minutes | $15 |
 | `ebs-volume-unencrypted` | medium | expected | hours | $0 |
+| `ebs-snapshot-public` | critical | blocker | minutes | $0 |
+| `security-group-open-admin-ports` | critical | blocker | minutes | $0 |
+| `vpc-flow-logs-disabled` | low | hardening | minutes | $2 |
+| `iam-root-account-no-mfa` | critical | blocker | minutes | $0 |
+| `iam-user-no-mfa` | high | expected | minutes | $0 |
+| `iam-access-key-stale` | medium | expected | hours | $0 |
+| `iam-password-policy-weak` | low | expected | minutes | $0 |
+| `cloudtrail-not-enabled` | medium | blocker | minutes | $2 |
+| `aws-config-not-enabled` | medium | blocker | minutes | $3 |
+| `guardduty-not-enabled` | medium | expected | minutes | $5 |
 | `kms-key-rotation-disabled` | low | hardening | minutes | $0 |
 
-One check landed in each of the planned areas — public exposure, data
-protection, IAM hygiene, logging and monitoring, encryption at rest, and key
-management. Scope is intentionally curated — this is a first check per area,
-not exhaustive coverage of it. See what was cut and why in
+Every planned area from the original roadmap now has at least one check, and
+public exposure, data protection, and IAM hygiene each have several. Scope is
+still intentionally curated relative to a full compliance-scanner's check
+count — false positives are the specific failure mode this project exists to
+avoid, and every check here still had to clear the bar in `CONTRIBUTING.md`.
+See what was cut and why in
 [`docs/DECISIONS.md`](docs/DECISIONS.md#9-v1-scope).
 
 ## Limitations

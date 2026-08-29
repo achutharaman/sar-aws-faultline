@@ -1,0 +1,20 @@
+# Check-to-control mappings for GuardDuty checks.
+
+[[mappings]]
+check = "guardduty-not-enabled"
+
+  [[mappings.controls]]
+  framework = "soc2-tsc"
+  control = "CC7.2"
+  relationship = "partially_supports"
+  derived_from = "cis-aws:3.1"
+  rationale = """
+  GuardDuty is the active-monitoring layer over the same evidence
+  CloudTrail's multi-region trail produces (plus VPC flow logs and DNS
+  logs), so this is reasoned from CloudTrail's recommendation as the
+  closest real citation rather than a direct one -- CIS AWS Foundations
+  does not number GuardDuty enablement as a recommendation in any version
+  reviewed, since GuardDuty postdates most of that benchmark's structure.
+  Partial only: CC7.2 also requires review of and response to what
+  GuardDuty surfaces, which enablement alone does not establish.
+  """

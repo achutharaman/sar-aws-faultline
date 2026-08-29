@@ -3,9 +3,9 @@
 moto's fake credential report only ever contains rows for IAM users actually
 created in the mock -- it never synthesises the ``<root_account>`` row real
 AWS always includes (see moto.iam.models.IAMBackend.get_credential_report).
-So _parse() is tested directly against synthetic CSV content instead of
-through moto, and the one full-wiring test below monkeypatches the boto3
-client's response rather than relying on moto to model root at all.
+So _parse() is tested directly against synthetic rows instead of through
+moto, and the one full-wiring test below monkeypatches the boto3 client's
+response rather than relying on moto to model root at all.
 """
 
 from __future__ import annotations
@@ -21,26 +21,8 @@ from sar_aws_faultline.config import Config
 from sar_aws_faultline.context import ScanContext
 from sar_aws_faultline.models import AuditImpact, Severity
 from sar_aws_faultline.session import ClientFactory
+from tests.checks.credential_report_fixtures import csv_row, report_bytes, report_rows
 from tests.conftest import FROZEN_NOW, TEST_ACCOUNT
-
-_HEADER = (
-    "user,arn,user_creation_time,password_enabled,password_last_used,"
-    "password_last_changed,password_next_rotation,mfa_active,"
-    "access_key_1_active,access_key_1_last_rotated,access_key_1_last_used_date,"
-    "access_key_1_last_used_region,access_key_1_last_used_service,"
-    "access_key_2_active,access_key_2_last_rotated,access_key_2_last_used_date,"
-    "access_key_2_last_used_region,access_key_2_last_used_service,"
-    "cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n"
-)
-
-
-def _report(root_mfa: str) -> bytes:
-    row = (
-        "<root_account>,arn:aws:iam::123456789012:root,2020-01-01T00:00:00Z,"
-        f"true,N/A,N/A,N/A,{root_mfa},false,N/A,N/A,N/A,N/A,false,N/A,N/A,N/A,"
-        "N/A,false,N/A,false,N/A\n"
-    )
-    return (_HEADER + row).encode("utf-8")
 
 
 def test_mfa_active_root_is_fine():
@@ -52,17 +34,18 @@ def test_mfa_missing_root_is_flagged():
 
 
 def test_parse_finds_the_root_row_with_mfa():
-    state = RootAccountWithoutMfa._parse(_report("true"))
-    assert state == RootAccountState(mfa_active=True)
+    rows = report_rows(csv_row("<root_account>", mfa_active="true"))
+    assert RootAccountWithoutMfa._parse(rows) == RootAccountState(mfa_active=True)
 
 
 def test_parse_finds_the_root_row_without_mfa():
-    state = RootAccountWithoutMfa._parse(_report("false"))
-    assert state == RootAccountState(mfa_active=False)
+    rows = report_rows(csv_row("<root_account>", mfa_active="false"))
+    assert RootAccountWithoutMfa._parse(rows) == RootAccountState(mfa_active=False)
 
 
 def test_parse_returns_none_when_root_row_is_absent():
-    assert RootAccountWithoutMfa._parse(_HEADER.encode("utf-8")) is None
+    rows = report_rows(csv_row("some-user"))
+    assert RootAccountWithoutMfa._parse(rows) is None
 
 
 def _context() -> ScanContext:
@@ -99,7 +82,8 @@ def test_run_on_account_with_no_root_row_yields_nothing():
 def test_run_flags_root_when_the_report_says_no_mfa(monkeypatch):
     ctx = _context()
     iam = ctx.factory.client("iam", region=ctx.region)
-    monkeypatch.setattr(iam, "get_credential_report", lambda: {"Content": _report("false")})
+    content = report_bytes(csv_row("<root_account>", mfa_active="false"))
+    monkeypatch.setattr(iam, "get_credential_report", lambda: {"Content": content})
 
     findings = list(RootAccountWithoutMfa().run(ctx))
 
@@ -111,6 +95,7 @@ def test_run_flags_root_when_the_report_says_no_mfa(monkeypatch):
 def test_run_is_quiet_when_the_report_says_mfa_is_active(monkeypatch):
     ctx = _context()
     iam = ctx.factory.client("iam", region=ctx.region)
-    monkeypatch.setattr(iam, "get_credential_report", lambda: {"Content": _report("true")})
+    content = report_bytes(csv_row("<root_account>", mfa_active="true"))
+    monkeypatch.setattr(iam, "get_credential_report", lambda: {"Content": content})
 
     assert list(RootAccountWithoutMfa().run(ctx)) == []

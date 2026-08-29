@@ -11,12 +11,10 @@ first to actually pull it, scoped to just the root row for now.
 
 from __future__ import annotations
 
-import csv
-import io
-import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 
+from sar_aws_faultline.checks.iam_credential_report import ROOT_ROW_USER, fetch_report_rows
 from sar_aws_faultline.context import ScanContext
 from sar_aws_faultline.models import (
     AuditImpact,
@@ -27,14 +25,6 @@ from sar_aws_faultline.models import (
     Severity,
 )
 from sar_aws_faultline.registry import register
-
-ROOT_ROW_USER = "<root_account>"
-
-# The report is generated asynchronously; GetCredentialReport 404s with
-# ReportInProgress until it's ready. A handful of short retries covers the
-# common case (seconds) without turning a slow account into a stalled scan.
-_REPORT_POLL_ATTEMPTS = 5
-_REPORT_POLL_SECONDS = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,24 +91,13 @@ class RootAccountWithoutMfa:
 
     @staticmethod
     def _root_state(iam) -> RootAccountState | None:
-        for _ in range(_REPORT_POLL_ATTEMPTS):
-            iam.generate_credential_report()
-            try:
-                report = iam.get_credential_report()
-            except (
-                iam.exceptions.CredentialReportNotPresentException,
-                iam.exceptions.CredentialReportNotReadyException,
-            ):
-                time.sleep(_REPORT_POLL_SECONDS)
-                continue
-            except iam.exceptions.CredentialReportExpiredException:
-                continue
-            return RootAccountWithoutMfa._parse(report["Content"])
-        return None
+        rows = fetch_report_rows(iam)
+        if rows is None:
+            return None
+        return RootAccountWithoutMfa._parse(rows)
 
     @staticmethod
-    def _parse(content: bytes) -> RootAccountState | None:
-        rows = csv.DictReader(io.StringIO(content.decode("utf-8")))
+    def _parse(rows: list[dict[str, str]]) -> RootAccountState | None:
         for row in rows:
             if row.get("user") == ROOT_ROW_USER:
                 return RootAccountState(mfa_active=row.get("mfa_active", "false") == "true")
